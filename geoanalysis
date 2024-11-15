@@ -1,0 +1,29 @@
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import geopandas as gpd
+from shapely.geometry import Point
+
+df1 = pd.read_csv(r"D:\code\ICS\project\archive\earthquakes.csv")
+print(df1.info())
+
+#data pre-process
+col_need = ['date','latitude','longitude','placeOnly','location','continent','country','subnational','city','locality']
+df2 = df1[col_need]
+df2.loc[:,'date'] = df2['date'].str.split('T').str[0]
+df2 = df2.fillna('Unknown')
+
+geometry = [Point(xy) for xy in zip(df2['longitude'],df2['latitude'])]
+gdf = gpd.GeoDataFrame(df2, geometry=geometry)
+
+world = gpd.read_file(r'D:\code\ICS\project\ne_110m_admin_0_countries\ne_110m_admin_0_countries.shp')
+
+fig, ax = plt.subplots(figsize=(10,7))
+world.plot(ax =ax ,color = 'lightgray')
+gdf.plot(ax = ax, marker = 'o', color = 'red', markersize = 5, alpha=0.5)
+
+ax.set_title('Geographical Distribution of Earthquakes')
+
+plt.show()
+#print(df2.info())
