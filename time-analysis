@@ -1,0 +1,151 @@
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import geopandas as gpd
+from shapely.geometry import Point
+from datetime import datetime
+from scipy.signal import find_peaks
+
+
+df1 = pd.read_csv(r"D:\code\ICS\project\archive\earthquakes.csv")
+
+
+################################   Data Processing   #######################
+
+
+#data pre-process
+col_need = ['date']
+df2 = df1[col_need]
+df2.loc[:,'date'] = df2['date'].str.split('T').str[0]
+df2 = df2.fillna('Unknown')
+df2['date'] = pd.to_datetime(df2['date'], errors='coerce')
+
+#process total data
+total_counts = df2['date'].value_counts().sort_index()
+date_range = pd.date_range(start=df2['date'].min(), end=df2['date'].max())
+
+#process yearly data counts
+df2['year'] = df2['date'].dt.year
+df2['day_of_year'] = df2['date'].dt.dayofyear
+daily_counts = df2.groupby(['year', 'day_of_year']).size().reset_index(name='frequency')
+
+
+#process monthly data
+df_spring = df2[df2['date'].dt.month.isin([3, 4, 5])]
+spring_count = df_spring.groupby(df_spring['date']).size().sort_index()
+
+df_summer = df2[df2['date'].dt.month.isin([6, 7, 8])]
+summer_count = df_summer.groupby(df_summer['date']).size().sort_index()
+
+df_autumn = df2[df2['date'].dt.month.isin([9, 10, 11])]
+autumn_count = df_autumn.groupby(df_autumn['date']).size().sort_index()
+
+df_winter = df2[df2['date'].dt.month.isin([12, 1, 2])]
+winter_count = df_winter.groupby(df_winter['date']).size().sort_index()
+
+#process monthly average data
+spring_avg_rate = spring_count.sum() / len(spring_count)
+summer_avg_rate = summer_count.sum() / len(summer_count)
+autumn_avg_rate = autumn_count.sum() / len(autumn_count)
+winter_avg_rate = winter_count.sum() / len(winter_count)
+
+season_labels = ['Spring', 'Summer', 'Autumn', 'Winter']
+avg_rates = [spring_avg_rate, summer_avg_rate, autumn_avg_rate, winter_avg_rate]
+
+#print(spring_count)
+
+#print(df_summer)
+
+
+
+
+#####################   Drawing plts   ################################
+
+
+
+#total plt
+plt.figure(figsize = (20,7))
+sns.lineplot(x = total_counts.index, y = total_counts.values, markers = 'o')
+plt.xlabel('data')
+plt.ylabel('Num of earthquakes')
+step = max(1, len(total_counts) // 30)
+plt.xticks(total_counts.index[::step], rotation = 45)
+
+peaks, _ = find_peaks(total_counts.values)
+for peak  in peaks:
+    plt.annotate(f'{total_counts.values[peak]}',
+                 (total_counts.index[peak],total_counts.values[peak]),
+                 textcoords= 'offset points',
+                 xytext=(0,10),
+                 ha = 'center',
+                 arrowprops=dict(arrowstyle = '-',color = 'blue'))
+plt.grid(True)
+plt.tight_layout()
+plt.show(block = False)
+
+#yearly plt
+plt.figure(figsize=(12, 8))
+sns.boxplot(x='year', y='frequency', data=daily_counts)
+
+plt.xlabel('Year')
+plt.ylabel('Frequency')
+plt.title('Distribution of Earthquake Frequency by Year')
+plt.xticks(rotation=45)
+plt.grid(axis='y', linestyle='--', linewidth=0.7)
+plt.show(block = False)
+
+
+
+#4 monthes date plt
+fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+axes[0, 0].bar(spring_count.index, spring_count.values, color='green')
+axes[0, 0].set_title('Spring Earthquake Frequency')
+axes[0, 0].set_xlabel('Date')
+axes[0, 0].set_ylabel('Number of Earthquakes')
+axes[0, 0].tick_params(axis='x', rotation=45)
+axes[0, 0].grid(True, axis='y', linestyle='--', linewidth=0.7)
+
+axes[0, 1].bar(summer_count.index, summer_count.values, color='orange')
+axes[0, 1].set_title('Summer Earthquake Frequency')
+axes[0, 1].set_xlabel('Date')
+axes[0, 1].set_ylabel('Number of Earthquakes')
+axes[0, 1].tick_params(axis='x', rotation=45)
+axes[0, 1].grid(True, axis='y', linestyle='--', linewidth=0.7)
+
+axes[1, 0].bar(autumn_count.index, autumn_count.values, color='red')
+axes[1, 0].set_title('Autumn Earthquake Frequency')
+axes[1, 0].set_xlabel('Date')
+axes[1, 0].set_ylabel('Number of Earthquakes')
+axes[1, 0].tick_params(axis='x', rotation=45)
+axes[1, 0].grid(True, axis='y', linestyle='--', linewidth=0.7)
+
+axes[1, 1].bar(winter_count.index, winter_count.values, color='blue')
+axes[1, 1].set_title('Winter Earthquake Frequency')
+axes[1, 1].set_xlabel('Date')
+axes[1, 1].set_ylabel('Number of Earthquakes')
+axes[1, 1].tick_params(axis='x', rotation=45)
+axes[1, 1].grid(True, axis='y', linestyle='--', linewidth=0.7)
+plt.tight_layout()
+plt.show(block = False)
+
+
+#month average data plt
+data_4 = [
+    spring_count.values,
+    summer_count.values,
+    autumn_count.values,
+    winter_count.values
+]
+plt.figure(figsize=(10, 6))
+plt.boxplot(data_4, tick_labels=['Spring', 'Summer', 'Autumn', 'Winter'], patch_artist=True,
+            boxprops=dict(facecolor='skyblue', color='black'),
+            medianprops=dict(color='red'))
+plt.xlabel('Season')
+plt.ylabel('Earthquake Frequency')
+plt.title('Earthquake Frequency Distribution by Season')
+plt.grid(axis='y', linestyle='--', linewidth=0.7)
+plt.tight_layout()
+plt.show(block = False)
+
+input("Press Enter to exit")
